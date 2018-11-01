@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context" xmlns:tx="http://www.springframework.org/schema/tx"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/context
+       http://www.springframework.org/schema/context/spring-context.xsd http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd">
+
+
+    <context:component-scan base-package="CCTV.Tmall.Service"/>
+
+    <context:property-placeholder location="classpath:jdbc.properties"/>
+
+    <bean id="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource">
+        <property name="driverClass" value="${jdbc.Driver}"/>
+        <property name="jdbcUrl" value="${jdbc.url}"/>
+        <property name="user" value="${jdbc.username}"/>
+        <property name="password" value="${jdbc.password}"/>
+    </bean>
+
+    <bean id="SqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <property name="dataSource" ref="dataSource"/>
+        <property name="mapperLocations" value="classpath:mapper/*.xml"/>
+        <property name="typeAliasesPackage" value="CCTV.Tmall.pojo"/>
+        <property name="plugins">
+            <array>
+                <bean class="com.github.pagehelper.PageInterceptor">
+                    <property name="properties">
+                        <value></value>
+                    </property>
+                </bean>
+            </array>
+        </property>
+    </bean>
+
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <property name="basePackage" value="CCTV.Tmall.mapper"/>
+        <property name="sqlSessionFactoryBeanName" value="SqlSessionFactory"/>
+    </bean>
+
+
+
+<!--
+因为增加订单行为需要同时修改两个表
+1. 为Order表新增数据
+2. 修改OrderItem表
+所以需要进行事务管理，否则当新增了Order表的数据，还没有来得及修改OrderItem的时候出问题，
+比如突然断电，那么OrderItem的数据就会是脏数据了（没有指向正确的Order表数据）。
+-->
+    <bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="dataSource"/>
+    </bean>
+
+    <!--事务管理-->
+    <tx:annotation-driven transaction-manager="transactionManager"/>
+
+
+</beans>
